@@ -22,7 +22,7 @@
 
       <form id="setup-form">
         <label for="last-period">When did her last period start?</label>
-        <input type="date" id="last-period" required>
+        <input type="text" id="last-period" placeholder="dd/mm/yyyy" inputmode="numeric" pattern="\d{2}/\d{2}/\d{4}" required>
 
         <label for="cycle-length">Cycle length (days)</label>
         <div class="stepper">
@@ -99,7 +99,7 @@
       <h2>Settings ⚙️</h2>
       <form id="settings-form">
         <label for="edit-last-period">Last period start date</label>
-        <input type="date" id="edit-last-period" required>
+        <input type="text" id="edit-last-period" placeholder="dd/mm/yyyy" inputmode="numeric" pattern="\d{2}/\d{2}/\d{4}" required>
 
         <label for="edit-cycle-length">Cycle length (days)</label>
         <div class="stepper">

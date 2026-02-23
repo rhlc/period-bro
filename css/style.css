@@ -83,7 +83,8 @@ label {
   margin-top: 0.5rem;
 }
 
-input[type="date"] {
+input[type="date"],
+input[type="text"] {
   width: 100%;
   padding: 0.85rem 1rem;
   border-radius: var(--radius);
@@ -95,7 +96,8 @@ input[type="date"] {
   transition: border-color 0.2s;
 }
 
-input[type="date"]:focus {
+input[type="date"]:focus,
+input[type="text"]:focus {
   outline: none;
   border-color: var(--accent);
 }

@@ -76,6 +76,37 @@ const BASE_BOUNDARIES = [
   { phase: "luteal", start: 17, end: 28 }
 ];
 
+// ── Date Helpers (dd/mm/yyyy ↔ yyyy-mm-dd) ──
+function toDisplay(isoDate) {
+  const [y, m, d] = isoDate.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+function toISO(displayDate) {
+  const [d, m, y] = displayDate.split("/");
+  return `${y}-${m}-${d}`;
+}
+
+function isValidDisplayDate(str) {
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return false;
+  const [d, m, y] = str.split("/").map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d && date <= new Date();
+}
+
+function setupDateInput(input) {
+  input.addEventListener("input", (e) => {
+    let val = input.value.replace(/[^\d]/g, "");
+    if (val.length > 8) val = val.slice(0, 8);
+    if (val.length >= 5) {
+      val = val.slice(0, 2) + "/" + val.slice(2, 4) + "/" + val.slice(4);
+    } else if (val.length >= 3) {
+      val = val.slice(0, 2) + "/" + val.slice(2);
+    }
+    input.value = val;
+  });
+}
+
 // ── DOM Elements ──
 const $ = (sel) => document.querySelector(sel);
 
@@ -252,10 +283,9 @@ function shareResult(lastPeriod, cycleLength) {
 
 // ── Init ──
 (function init() {
-  // Set max date to today
-  const today = new Date().toISOString().split("T")[0];
-  $("#last-period").setAttribute("max", today);
-  $("#edit-last-period").setAttribute("max", today);
+  // Setup date inputs with auto-formatting
+  setupDateInput($("#last-period"));
+  setupDateInput($("#edit-last-period"));
 
   const mainStepper = setupStepper("#cycle-dec", "#cycle-inc", "#cycle-length-display", "#cycle-length");
   const editStepper = setupStepper("#edit-cycle-dec", "#edit-cycle-inc", "#edit-cycle-length-display", "#edit-cycle-length");
@@ -269,7 +299,14 @@ function shareResult(lastPeriod, cycleLength) {
   // Setup form
   $("#setup-form").addEventListener("submit", (e) => {
     e.preventDefault();
-    const lastPeriod = $("#last-period").value;
+    const input = $("#last-period");
+    if (!isValidDisplayDate(input.value)) {
+      input.setCustomValidity("Enter a valid date (dd/mm/yyyy), not in the future");
+      input.reportValidity();
+      input.setCustomValidity("");
+      return;
+    }
+    const lastPeriod = toISO(input.value);
     const cycleLength = mainStepper.get();
     saveData(lastPeriod, cycleLength);
     showDashboard(lastPeriod, cycleLength);
@@ -279,7 +316,7 @@ function shareResult(lastPeriod, cycleLength) {
   $("#edit-btn").addEventListener("click", () => {
     const data = loadData();
     if (data) {
-      $("#edit-last-period").value = data.lastPeriod;
+      $("#edit-last-period").value = toDisplay(data.lastPeriod);
       editStepper.set(data.cycleLength);
     }
     settingsModal.classList.remove("hidden");
@@ -288,7 +325,14 @@ function shareResult(lastPeriod, cycleLength) {
   // Settings form save
   $("#settings-form").addEventListener("submit", (e) => {
     e.preventDefault();
-    const lastPeriod = $("#edit-last-period").value;
+    const input = $("#edit-last-period");
+    if (!isValidDisplayDate(input.value)) {
+      input.setCustomValidity("Enter a valid date (dd/mm/yyyy), not in the future");
+      input.reportValidity();
+      input.setCustomValidity("");
+      return;
+    }
+    const lastPeriod = toISO(input.value);
     const cycleLength = editStepper.get();
     saveData(lastPeriod, cycleLength);
     settingsModal.classList.add("hidden");
