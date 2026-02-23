@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Period Bro</title>
   <meta name="description" content="Be the partner she deserves. Understand her cycle, be a better bro.">
-  <meta name="theme-color" content="#1a1a2e">
+  <meta name="theme-color" content="#101725">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩸</text></svg>">
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩸</text></svg>">
@@ -16,9 +16,12 @@
   <!-- Input Screen -->
   <div id="input-screen" class="screen">
     <div class="input-container">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
       <div class="logo">🩸</div>
       <h1>Period Bro</h1>
       <p class="tagline">Be the partner she deserves</p>
+      <p class="intro-copy">Fun vibe, real support. Track the cycle and show up better every day.</p>
 
       <form id="setup-form">
         <label for="last-period">When did her last period start?</label>
@@ -47,6 +50,25 @@
         <div class="phase-emoji" id="phase-emoji"></div>
         <h2 id="phase-name"></h2>
         <p class="cycle-day" id="cycle-day"></p>
+        <p class="phase-emojis" id="phase-emojis"></p>
+      </div>
+
+      <div class="insights-grid">
+        <div class="stat-card">
+          <p class="stat-label">Next period</p>
+          <p class="stat-value" id="next-period"></p>
+          <p class="stat-sub" id="next-period-date"></p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Next phase</p>
+          <p class="stat-value" id="next-phase"></p>
+          <p class="stat-sub" id="next-phase-days"></p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Fertile window</p>
+          <p class="stat-value" id="fertile-window"></p>
+          <p class="stat-sub" id="ovulation-countdown"></p>
+        </div>
       </div>
 
       <div class="progress-bar" id="progress-bar">
@@ -59,6 +81,12 @@
       <p class="progress-label">Cycle Progress</p>
 
       <p class="mood-line" id="mood-line"></p>
+
+      <div class="coach-card">
+        <h3>Coach Play 🎯</h3>
+        <p id="coach-tip"></p>
+        <p class="coach-note" id="science-note"></p>
+      </div>
 
       <div class="vibe-check">
         <h3>Vibe Check</h3>
@@ -89,7 +117,7 @@
         <button class="btn-secondary" id="edit-btn">Edit Date ✏️</button>
       </div>
 
-      <p class="disclaimer">Every person is different. When in doubt: just ask her. 💬</p>
+      <p class="disclaimer">Every person is different. This app is a guide, not a diagnosis. When in doubt: ask and listen. 💬</p>
     </div>
   </div>
 

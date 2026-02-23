@@ -6,6 +6,8 @@ const PHASES = {
     mainEmoji: "🌊",
     color: "#D32F2F",
     moodLine: "She's a warrior right now. Act accordingly.",
+    coachTip: "Lead with comfort. Reduce plans, increase care, and avoid fixing mode.",
+    scienceNote: "Cramps and lower energy are common in this phase, so low-pressure support helps.",
     energy: { level: 25, text: "LOW" },
     mood: { level: 40, text: "VARIABLE" },
     patience: { level: 20, text: "THIN" },
@@ -22,6 +24,8 @@ const PHASES = {
     mainEmoji: "✨",
     color: "#388E3C",
     moodLine: "She's charging up. Match her energy or get out the way.",
+    coachTip: "Suggest fun plans and shared goals. This is often a good phase for momentum.",
+    scienceNote: "Rising estrogen can align with better mood and social energy for many people.",
     energy: { level: 65, text: "RISING" },
     mood: { level: 75, text: "GOOD" },
     patience: { level: 60, text: "NORMAL" },
@@ -38,6 +42,8 @@ const PHASES = {
     mainEmoji: "👑",
     color: "#F57C00",
     moodLine: "She's THE moment. You're the supporting cast. Embrace it.",
+    coachTip: "Bring intentional energy. Plan quality time and show direct appreciation.",
+    scienceNote: "Around ovulation, some people report higher energy, confidence, and sociability.",
     energy: { level: 95, text: "PEAK" },
     mood: { level: 90, text: "GREAT" },
     patience: { level: 85, text: "HIGH" },
@@ -54,6 +60,8 @@ const PHASES = {
     mainEmoji: "🧸",
     color: "#7B1FA2",
     moodLine: "Tread lightly, king. The vibes are... shifting.",
+    coachTip: "Be proactive with practical help: food, chores, and gentle communication.",
+    scienceNote: "In late luteal days, PMS symptoms can rise. Clarity and patience go a long way.",
     energy: { level: 35, text: "DROPPING" },
     mood: { level: 30, text: "UNPREDICTABLE" },
     patience: { level: 25, text: "LOW" },
@@ -87,6 +95,16 @@ function toISO(displayDate) {
   return `${y}-${m}-${d}`;
 }
 
+function formatFriendlyDate(date) {
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
 function isValidDisplayDate(str) {
   if (!/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return false;
   const [d, m, y] = str.split("/").map(Number);
@@ -95,7 +113,7 @@ function isValidDisplayDate(str) {
 }
 
 function setupDateInput(input) {
-  input.addEventListener("input", (e) => {
+  input.addEventListener("input", () => {
     let val = input.value.replace(/[^\d]/g, "");
     if (val.length > 8) val = val.slice(0, 8);
     if (val.length >= 5) {
@@ -105,6 +123,14 @@ function setupDateInput(input) {
     }
     input.value = val;
   });
+}
+
+function pluralizeDays(n) {
+  return n === 1 ? "1 day" : `${n} days`;
+}
+
+function getPhaseLabel(phaseKey) {
+  return PHASES[phaseKey].name;
 }
 
 // ── DOM Elements ──
@@ -133,21 +159,51 @@ function getScaledBoundaries(cycleLength) {
 
 function getCycleInfo(lastPeriod, cycleLength) {
   const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const last = new Date(lastPeriod + "T00:00:00");
-  const diffMs = now - last;
+  const diffMs = today - last;
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const cycleDay = (diffDays % cycleLength) + 1;
   const boundaries = getScaledBoundaries(cycleLength);
 
   let currentPhase = "luteal";
-  for (const b of boundaries) {
+  let phaseIndex = 0;
+  for (let i = 0; i < boundaries.length; i++) {
+    const b = boundaries[i];
     if (cycleDay >= b.start && cycleDay <= b.end) {
       currentPhase = b.phase;
+      phaseIndex = i;
       break;
     }
   }
 
-  return { cycleDay, currentPhase, boundaries, cycleLength };
+  const currentBoundary = boundaries[phaseIndex];
+  const nextBoundary = boundaries[(phaseIndex + 1) % boundaries.length];
+  const daysUntilNextPhase = currentBoundary.end - cycleDay + 1;
+
+  const daysUntilNextPeriod = cycleLength - cycleDay + 1;
+  const nextPeriodDate = addDays(today, daysUntilNextPeriod);
+
+  const ovulationBoundary = boundaries.find((b) => b.phase === "ovulation");
+  const fertileStart = Math.max(1, ovulationBoundary.start - 2);
+  const fertileEnd = Math.min(cycleLength, ovulationBoundary.end + 1);
+  const daysUntilOvulation = cycleDay <= ovulationBoundary.start
+    ? ovulationBoundary.start - cycleDay
+    : cycleLength - cycleDay + ovulationBoundary.start;
+
+  return {
+    cycleDay,
+    currentPhase,
+    boundaries,
+    cycleLength,
+    daysUntilNextPeriod,
+    nextPeriodDate,
+    nextPhase: nextBoundary.phase,
+    daysUntilNextPhase,
+    fertileStart,
+    fertileEnd,
+    daysUntilOvulation
+  };
 }
 
 // ── Rendering ──
@@ -159,13 +215,27 @@ function renderDashboard(info) {
   $("#phase-emoji").textContent = phase.mainEmoji;
   $("#phase-name").textContent = phase.name;
   $("#cycle-day").textContent = `Day ${info.cycleDay} of ${info.cycleLength}`;
+  $("#phase-emojis").textContent = phase.emojis;
   $("#mood-line").textContent = `"${phase.moodLine}"`;
+
+  $("#next-period").textContent = `In ${pluralizeDays(info.daysUntilNextPeriod)}`;
+  $("#next-period-date").textContent = `Expected: ${formatFriendlyDate(info.nextPeriodDate)}`;
+
+  $("#next-phase").textContent = getPhaseLabel(info.nextPhase);
+  $("#next-phase-days").textContent = `Starts in ${pluralizeDays(info.daysUntilNextPhase)}`;
+
+  $("#fertile-window").textContent = `Days ${info.fertileStart}-${info.fertileEnd}`;
+  $("#ovulation-countdown").textContent = info.daysUntilOvulation === 0
+    ? "Ovulation window: now"
+    : `Ovulation in ${pluralizeDays(info.daysUntilOvulation)}`;
+
+  $("#coach-tip").textContent = phase.coachTip;
+  $("#science-note").textContent = `Why this helps: ${phase.scienceNote}`;
 
   // Vibe bars
   const setVibe = (id, data) => {
     const fill = $(`#vibe-${id}`);
     const text = $(`#vibe-${id}-text`);
-    // Trigger reflow for animation
     fill.style.width = "0";
     requestAnimationFrame(() => {
       fill.style.width = data.level + "%";
@@ -267,7 +337,14 @@ function setupStepper(decId, incId, displayId, hiddenId, initial) {
 function shareResult(lastPeriod, cycleLength) {
   const info = getCycleInfo(lastPeriod, cycleLength);
   const phase = PHASES[info.currentPhase];
-  const text = `Day ${info.cycleDay}: ${phase.name} ${phase.emojis}\n"${phase.moodLine}"\n\n— Period Bro 🩸`;
+  const text = [
+    `Day ${info.cycleDay}: ${phase.name} ${phase.emojis}`,
+    `Next phase: ${getPhaseLabel(info.nextPhase)} in ${pluralizeDays(info.daysUntilNextPhase)}`,
+    `Next period: in ${pluralizeDays(info.daysUntilNextPeriod)} (${formatFriendlyDate(info.nextPeriodDate)})`,
+    `Coach Play: ${phase.coachTip}`,
+    "",
+    "- Period Bro"
+  ].join("\n");
 
   if (navigator.share) {
     navigator.share({ title: "Period Bro", text }).catch(() => {});
@@ -283,20 +360,17 @@ function shareResult(lastPeriod, cycleLength) {
 
 // ── Init ──
 (function init() {
-  // Setup date inputs with auto-formatting
   setupDateInput($("#last-period"));
   setupDateInput($("#edit-last-period"));
 
   const mainStepper = setupStepper("#cycle-dec", "#cycle-inc", "#cycle-length-display", "#cycle-length");
   const editStepper = setupStepper("#edit-cycle-dec", "#edit-cycle-inc", "#edit-cycle-length-display", "#edit-cycle-length");
 
-  // Check for saved data
   const saved = loadData();
   if (saved) {
     showDashboard(saved.lastPeriod, saved.cycleLength);
   }
 
-  // Setup form
   $("#setup-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const input = $("#last-period");
@@ -312,7 +386,6 @@ function shareResult(lastPeriod, cycleLength) {
     showDashboard(lastPeriod, cycleLength);
   });
 
-  // Edit button → open modal
   $("#edit-btn").addEventListener("click", () => {
     const data = loadData();
     if (data) {
@@ -322,7 +395,6 @@ function shareResult(lastPeriod, cycleLength) {
     settingsModal.classList.remove("hidden");
   });
 
-  // Settings form save
   $("#settings-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const input = $("#edit-last-period");
@@ -339,19 +411,16 @@ function shareResult(lastPeriod, cycleLength) {
     showDashboard(lastPeriod, cycleLength);
   });
 
-  // Cancel
   $("#cancel-btn").addEventListener("click", () => {
     settingsModal.classList.add("hidden");
   });
 
-  // Close modal on backdrop click
   settingsModal.addEventListener("click", (e) => {
     if (e.target === settingsModal) {
       settingsModal.classList.add("hidden");
     }
   });
 
-  // Reset
   $("#reset-btn").addEventListener("click", () => {
     if (confirm("Clear all data and start over?")) {
       clearData();
@@ -360,13 +429,11 @@ function shareResult(lastPeriod, cycleLength) {
     }
   });
 
-  // Share
   $("#share-btn").addEventListener("click", () => {
     const data = loadData();
     if (data) shareResult(data.lastPeriod, data.cycleLength);
   });
 
-  // Service Worker
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
