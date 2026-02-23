@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Period Bro</title>
+  <meta name="description" content="Be the partner she deserves. Understand her cycle, be a better bro.">
+  <meta name="theme-color" content="#1a1a2e">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩸</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩸</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Input Screen -->
+  <div id="input-screen" class="screen">
+    <div class="input-container">
+      <div class="logo">🩸</div>
+      <h1>Period Bro</h1>
+      <p class="tagline">Be the partner she deserves</p>
+
+      <form id="setup-form">
+        <label for="last-period">When did her last period start?</label>
+        <input type="date" id="last-period" required>
+
+        <label for="cycle-length">Cycle length (days)</label>
+        <div class="stepper">
+          <button type="button" class="stepper-btn" id="cycle-dec" aria-label="Decrease">−</button>
+          <span id="cycle-length-display">28</span>
+          <button type="button" class="stepper-btn" id="cycle-inc" aria-label="Increase">+</button>
+        </div>
+        <input type="hidden" id="cycle-length" value="28">
+
+        <button type="submit" class="btn-primary">Let's Go 🤝</button>
+      </form>
+
+      <p class="privacy-note">🔒 Your data stays on your phone. No servers, no tracking.</p>
+    </div>
+  </div>
+
+  <!-- Dashboard Screen -->
+  <div id="dashboard-screen" class="screen hidden">
+    <div class="dashboard-container" data-phase="">
+
+      <div class="phase-header">
+        <div class="phase-emoji" id="phase-emoji"></div>
+        <h2 id="phase-name"></h2>
+        <p class="cycle-day" id="cycle-day"></p>
+      </div>
+
+      <div class="progress-bar" id="progress-bar">
+        <div class="progress-segment" data-seg="menstruation"></div>
+        <div class="progress-segment" data-seg="follicular"></div>
+        <div class="progress-segment" data-seg="ovulation"></div>
+        <div class="progress-segment" data-seg="luteal"></div>
+        <div class="progress-marker" id="progress-marker"></div>
+      </div>
+      <p class="progress-label">Cycle Progress</p>
+
+      <p class="mood-line" id="mood-line"></p>
+
+      <div class="vibe-check">
+        <h3>Vibe Check</h3>
+        <div class="vibe-row">
+          <span class="vibe-label">⚡ Energy</span>
+          <div class="vibe-bar"><div class="vibe-fill" id="vibe-energy"></div></div>
+          <span class="vibe-text" id="vibe-energy-text"></span>
+        </div>
+        <div class="vibe-row">
+          <span class="vibe-label">😊 Mood</span>
+          <div class="vibe-bar"><div class="vibe-fill" id="vibe-mood"></div></div>
+          <span class="vibe-text" id="vibe-mood-text"></span>
+        </div>
+        <div class="vibe-row">
+          <span class="vibe-label">🧘 Patience</span>
+          <div class="vibe-bar"><div class="vibe-fill" id="vibe-patience"></div></div>
+          <span class="vibe-text" id="vibe-patience-text"></span>
+        </div>
+      </div>
+
+      <div class="tips-section">
+        <h3>Bro Tips 💡</h3>
+        <div class="tips-grid" id="tips-grid"></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-secondary" id="share-btn">Share 📤</button>
+        <button class="btn-secondary" id="edit-btn">Edit Date ✏️</button>
+      </div>
+
+      <p class="disclaimer">Every person is different. When in doubt: just ask her. 💬</p>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Settings ⚙️</h2>
+      <form id="settings-form">
+        <label for="edit-last-period">Last period start date</label>
+        <input type="date" id="edit-last-period" required>
+
+        <label for="edit-cycle-length">Cycle length (days)</label>
+        <div class="stepper">
+          <button type="button" class="stepper-btn" id="edit-cycle-dec" aria-label="Decrease">−</button>
+          <span id="edit-cycle-length-display">28</span>
+          <button type="button" class="stepper-btn" id="edit-cycle-inc" aria-label="Increase">+</button>
+        </div>
+        <input type="hidden" id="edit-cycle-length" value="28">
+
+        <div class="modal-actions">
+          <button type="submit" class="btn-primary">Save</button>
+          <button type="button" class="btn-danger" id="reset-btn">Reset All Data</button>
+          <button type="button" class="btn-secondary" id="cancel-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

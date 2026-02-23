@@ -1,0 +1,453 @@
+/* ── Reset & Base ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #1a1a2e;
+  --bg-card: #16213e;
+  --text: #eeeeee;
+  --text-muted: #aaaaaa;
+  --accent: #e94560;
+  --phase-color: #e94560;
+  --radius: 14px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Screens ── */
+.screen {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ── Input Screen ── */
+.input-container {
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.logo {
+  font-size: 4rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.input-container h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin: 0.25rem 0;
+  background: linear-gradient(135deg, var(--accent), #ff6b6b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.tagline {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+label {
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+input[type="date"] {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  border: 2px solid #333;
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 1rem;
+  font-family: var(--font);
+  transition: border-color 0.2s;
+}
+
+input[type="date"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ── Stepper ── */
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.stepper-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid #444;
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stepper-btn:hover {
+  border-color: var(--accent);
+  background: rgba(233, 69, 96, 0.15);
+}
+
+.stepper-btn:active {
+  transform: scale(0.92);
+}
+
+.stepper span {
+  font-size: 1.8rem;
+  font-weight: 700;
+  min-width: 3ch;
+  text-align: center;
+}
+
+/* ── Buttons ── */
+.btn-primary {
+  padding: 1rem;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #444;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  border-color: var(--phase-color);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-danger {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #d32f2f;
+  border-radius: var(--radius);
+  background: transparent;
+  color: #ef5350;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-danger:hover {
+  background: rgba(211, 47, 47, 0.15);
+}
+
+.privacy-note {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-top: 1.5rem;
+}
+
+/* ── Dashboard ── */
+.dashboard-container {
+  max-width: 480px;
+  width: 100%;
+  padding: 1.5rem 0;
+}
+
+.phase-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.phase-emoji {
+  font-size: 4.5rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.phase-header h2 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--phase-color);
+  margin: 0.25rem 0;
+}
+
+.cycle-day {
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+/* ── Progress Bar ── */
+.progress-bar {
+  display: flex;
+  height: 12px;
+  border-radius: 6px;
+  overflow: visible;
+  position: relative;
+  margin: 0.5rem 0 0.25rem;
+  gap: 3px;
+}
+
+.progress-segment {
+  border-radius: 6px;
+  transition: opacity 0.3s;
+}
+
+.progress-segment[data-seg="menstruation"] {
+  flex: 5;
+  background: #D32F2F;
+}
+
+.progress-segment[data-seg="follicular"] {
+  flex: 8;
+  background: #388E3C;
+}
+
+.progress-segment[data-seg="ovulation"] {
+  flex: 3;
+  background: #F57C00;
+}
+
+.progress-segment[data-seg="luteal"] {
+  flex: 12;
+  background: #7B1FA2;
+}
+
+.progress-marker {
+  position: absolute;
+  top: -6px;
+  width: 4px;
+  height: 24px;
+  background: #fff;
+  border-radius: 2px;
+  transition: left 0.6s ease;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+.progress-label {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ── Mood Line ── */
+.mood-line {
+  text-align: center;
+  font-size: 1.15rem;
+  font-style: italic;
+  color: var(--phase-color);
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+}
+
+/* ── Vibe Check ── */
+.vibe-check {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.vibe-check h3 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.vibe-row {
+  display: grid;
+  grid-template-columns: 100px 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.vibe-row:last-child {
+  margin-bottom: 0;
+}
+
+.vibe-label {
+  font-size: 0.85rem;
+}
+
+.vibe-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.vibe-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--phase-color);
+  transition: width 0.8s ease;
+  width: 0;
+}
+
+.vibe-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  min-width: 5ch;
+  text-align: right;
+}
+
+/* ── Tips ── */
+.tips-section {
+  margin-bottom: 1.5rem;
+}
+
+.tips-section h3 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.tips-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tip-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  border-left: 3px solid var(--phase-color);
+  font-size: 0.95rem;
+  opacity: 0;
+  animation: fadeSlideIn 0.4s ease forwards;
+}
+
+.tip-card:nth-child(1) { animation-delay: 0.1s; }
+.tip-card:nth-child(2) { animation-delay: 0.2s; }
+.tip-card:nth-child(3) { animation-delay: 0.3s; }
+.tip-card:nth-child(4) { animation-delay: 0.4s; }
+
+/* ── Actions ── */
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Disclaimer ── */
+.disclaimer {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ── Modal ── */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 2rem;
+  max-width: 400px;
+  width: 100%;
+}
+
+.modal-content h2 {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* ── Animations ── */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Phase Theming ── */
+[data-phase="menstruation"] { --phase-color: #D32F2F; }
+[data-phase="follicular"]   { --phase-color: #388E3C; }
+[data-phase="ovulation"]    { --phase-color: #F57C00; }
+[data-phase="luteal"]       { --phase-color: #7B1FA2; }
