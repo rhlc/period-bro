@@ -94,6 +94,10 @@ input[type="text"] {
   font-size: 1rem;
   font-family: var(--font);
   transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+  color-scheme: dark;
+  letter-spacing: 0.05em;
 }
 
 input[type="date"]:focus,
