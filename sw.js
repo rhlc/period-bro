@@ -1,4 +1,4 @@
-const CACHE_NAME = "period-bro-v1";
+const CACHE_NAME = "period-bro-v2";
 const ASSETS = [
   "/",
   "/index.html",

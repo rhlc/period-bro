@@ -69,6 +69,16 @@
           <p class="stat-value" id="fertile-window"></p>
           <p class="stat-sub" id="ovulation-countdown"></p>
         </div>
+        <div class="stat-card">
+          <p class="stat-label">Avg cycle</p>
+          <p class="stat-value" id="avg-cycle"></p>
+          <p class="stat-sub" id="avg-cycle-sub"></p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Consistency</p>
+          <p class="stat-value" id="cycle-consistency"></p>
+          <p class="stat-sub" id="cycle-consistency-sub"></p>
+        </div>
       </div>
 
       <div class="progress-bar" id="progress-bar">
@@ -113,6 +123,7 @@
       </div>
 
       <div class="actions">
+        <button class="btn-primary btn-track" id="log-period-btn">Period Started Today</button>
         <button class="btn-secondary" id="share-btn">Share 📤</button>
         <button class="btn-secondary" id="edit-btn">Edit Date ✏️</button>
       </div>
@@ -136,6 +147,19 @@
           <button type="button" class="stepper-btn" id="edit-cycle-inc" aria-label="Increase">+</button>
         </div>
         <input type="hidden" id="edit-cycle-length" value="28">
+
+        <div class="history-section">
+          <h3>Track Period Starts</h3>
+          <label for="add-period-start">Add another start date</label>
+          <div class="history-add-row">
+            <input type="text" id="add-period-start" placeholder="dd/mm/yyyy" inputmode="numeric" pattern="\d{2}/\d{2}/\d{4}">
+            <button type="button" class="btn-secondary history-add-btn" id="add-period-btn">Add</button>
+          </div>
+          <div class="history-list-wrap">
+            <p class="history-note">Recent dates (newest first)</p>
+            <ul id="period-history-list" class="history-list"></ul>
+          </div>
+        </div>
 
         <div class="modal-actions">
           <button type="submit" class="btn-primary">Save</button>

@@ -84,6 +84,17 @@ const BASE_BOUNDARIES = [
   { phase: "luteal", start: 17, end: 28 }
 ];
 
+const STORAGE_KEYS = {
+  lastPeriod: "pb_lastPeriod",
+  cycleLength: "pb_cycleLength",
+  periodStarts: "pb_periodStarts"
+};
+
+const TRACKING_WINDOW = 6;
+const SHORT_CYCLE_WARNING_DAYS = 15;
+const MIN_CYCLE_FOR_ADAPTIVE = 15;
+const MAX_CYCLE_FOR_ADAPTIVE = 60;
+
 // ── Date Helpers (dd/mm/yyyy ↔ yyyy-mm-dd) ──
 function toDisplay(isoDate) {
   const [y, m, d] = isoDate.split("-");
@@ -105,11 +116,35 @@ function addDays(date, days) {
   return next;
 }
 
+function getTodayStart() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function isoToDate(isoDate) {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function daysBetween(startIso, endIso) {
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const start = isoToDate(startIso);
+  const end = isoToDate(endIso);
+  return Math.round((end - start) / msPerDay);
+}
+
+function isValidISODate(isoDate) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return false;
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+}
+
 function isValidDisplayDate(str) {
   if (!/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return false;
   const [d, m, y] = str.split("/").map(Number);
   const date = new Date(y, m - 1, d);
-  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d && date <= new Date();
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d && date <= getTodayStart();
 }
 
 function setupDateInput(input) {
@@ -131,6 +166,51 @@ function pluralizeDays(n) {
 
 function getPhaseLabel(phaseKey) {
   return PHASES[phaseKey].name;
+}
+
+function normalizePeriodStarts(periodStarts) {
+  const today = getTodayStart();
+  const cleaned = periodStarts.filter((isoDate) => {
+    if (!isValidISODate(isoDate)) return false;
+    return isoToDate(isoDate) <= today;
+  });
+  const uniqueSorted = Array.from(new Set(cleaned)).sort();
+  return uniqueSorted;
+}
+
+function getCycleLengths(periodStarts) {
+  const lengths = [];
+  for (let i = 1; i < periodStarts.length; i++) {
+    const diff = daysBetween(periodStarts[i - 1], periodStarts[i]);
+    if (diff > 0) lengths.push(diff);
+  }
+  return lengths;
+}
+
+function findPreviousStart(periodStarts, newDateIso) {
+  let previous = null;
+  for (let i = 0; i < periodStarts.length; i++) {
+    const date = periodStarts[i];
+    if (date < newDateIso) {
+      previous = date;
+    } else {
+      break;
+    }
+  }
+  return previous;
+}
+
+function hasShortGapWarning(previousIso, newIso) {
+  if (!previousIso) return false;
+  return daysBetween(previousIso, newIso) < SHORT_CYCLE_WARNING_DAYS;
+}
+
+function flashButtonText(button, text, ms = 1800) {
+  const original = button.textContent;
+  button.textContent = text;
+  setTimeout(() => {
+    button.textContent = original;
+  }, ms);
 }
 
 // ── DOM Elements ──
@@ -157,12 +237,39 @@ function getScaledBoundaries(cycleLength) {
   return boundaries;
 }
 
+function getAdaptiveCycleMetrics(periodStarts, fallbackCycleLength, windowSize = TRACKING_WINDOW) {
+  const derived = getCycleLengths(periodStarts).filter((len) => {
+    return len >= MIN_CYCLE_FOR_ADAPTIVE && len <= MAX_CYCLE_FOR_ADAPTIVE;
+  });
+  const cycleLengthsUsed = derived.slice(-windowSize);
+
+  if (cycleLengthsUsed.length === 0) {
+    return {
+      effectiveCycleLength: fallbackCycleLength,
+      averageCycleLength: fallbackCycleLength,
+      consistencyRange: null,
+      cycleLengthsUsed,
+      adaptiveUsed: false
+    };
+  }
+
+  const total = cycleLengthsUsed.reduce((sum, n) => sum + n, 0);
+  const averageCycleLength = Math.round(total / cycleLengthsUsed.length);
+  const max = Math.max(...cycleLengthsUsed);
+  const min = Math.min(...cycleLengthsUsed);
+
+  return {
+    effectiveCycleLength: averageCycleLength,
+    averageCycleLength,
+    consistencyRange: max - min,
+    cycleLengthsUsed,
+    adaptiveUsed: true
+  };
+}
+
 function getCycleInfo(lastPeriod, cycleLength) {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const last = new Date(lastPeriod + "T00:00:00");
-  const diffMs = today - last;
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const today = getTodayStart();
+  const diffDays = daysBetween(lastPeriod, `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`);
   const cycleDay = (diffDays % cycleLength) + 1;
   const boundaries = getScaledBoundaries(cycleLength);
 
@@ -207,7 +314,7 @@ function getCycleInfo(lastPeriod, cycleLength) {
 }
 
 // ── Rendering ──
-function renderDashboard(info) {
+function renderDashboard(info, metrics) {
   const phase = PHASES[info.currentPhase];
   const container = $(".dashboard-container");
   container.setAttribute("data-phase", info.currentPhase);
@@ -229,10 +336,22 @@ function renderDashboard(info) {
     ? "Ovulation window: now"
     : `Ovulation in ${pluralizeDays(info.daysUntilOvulation)}`;
 
+  $("#avg-cycle").textContent = `${metrics.averageCycleLength} days`;
+  $("#avg-cycle-sub").textContent = metrics.adaptiveUsed
+    ? `From ${metrics.cycleLengthsUsed.length} tracked cycle${metrics.cycleLengthsUsed.length === 1 ? "" : "s"}`
+    : "Using configured cycle length";
+
+  if (metrics.consistencyRange === null) {
+    $("#cycle-consistency").textContent = "—";
+    $("#cycle-consistency-sub").textContent = "Log more starts to measure";
+  } else {
+    $("#cycle-consistency").textContent = `${metrics.consistencyRange} days`;
+    $("#cycle-consistency-sub").textContent = metrics.consistencyRange <= 4 ? "Fairly consistent" : "Varies across cycles";
+  }
+
   $("#coach-tip").textContent = phase.coachTip;
   $("#science-note").textContent = `Why this helps: ${phase.scienceNote}`;
 
-  // Vibe bars
   const setVibe = (id, data) => {
     const fill = $(`#vibe-${id}`);
     const text = $(`#vibe-${id}-text`);
@@ -246,7 +365,6 @@ function renderDashboard(info) {
   setVibe("mood", phase.mood);
   setVibe("patience", phase.patience);
 
-  // Tips
   const grid = $("#tips-grid");
   grid.innerHTML = "";
   phase.tips.forEach((tip) => {
@@ -256,11 +374,11 @@ function renderDashboard(info) {
     grid.appendChild(card);
   });
 
-  // Progress marker position
-  const pct = ((info.cycleDay - 1) / (info.cycleLength - 1)) * 100;
+  const pct = info.cycleLength > 1
+    ? ((info.cycleDay - 1) / (info.cycleLength - 1)) * 100
+    : 0;
   $("#progress-marker").style.left = `calc(${pct}% - 2px)`;
 
-  // Scale segments to match actual boundaries
   const segs = document.querySelectorAll(".progress-segment");
   info.boundaries.forEach((b, i) => {
     const span = b.end - b.start + 1;
@@ -268,22 +386,95 @@ function renderDashboard(info) {
   });
 }
 
-// ── Storage ──
-function saveData(lastPeriod, cycleLength) {
-  localStorage.setItem("pb_lastPeriod", lastPeriod);
-  localStorage.setItem("pb_cycleLength", String(cycleLength));
+function renderPeriodHistory(periodStarts) {
+  const historyList = $("#period-history-list");
+  historyList.innerHTML = "";
+
+  if (!periodStarts.length) {
+    const emptyItem = document.createElement("li");
+    emptyItem.className = "history-empty";
+    emptyItem.textContent = "No tracked period starts yet.";
+    historyList.appendChild(emptyItem);
+    return;
+  }
+
+  const newestFirst = [...periodStarts].reverse();
+  newestFirst.forEach((isoDate) => {
+    const li = document.createElement("li");
+    li.className = "history-item";
+
+    const date = document.createElement("span");
+    date.className = "history-date";
+    date.textContent = toDisplay(isoDate);
+
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "history-delete";
+    del.setAttribute("data-date", isoDate);
+    del.textContent = "Delete";
+
+    li.appendChild(date);
+    li.appendChild(del);
+    historyList.appendChild(li);
+  });
 }
 
-function loadData() {
-  const lastPeriod = localStorage.getItem("pb_lastPeriod");
-  const cycleLength = parseInt(localStorage.getItem("pb_cycleLength"), 10);
-  if (lastPeriod && cycleLength) return { lastPeriod, cycleLength };
-  return null;
+// ── Storage ──
+function saveFallbackCycleLength(cycleLength) {
+  localStorage.setItem(STORAGE_KEYS.cycleLength, String(cycleLength));
+}
+
+function syncLegacyLastPeriod(periodStarts) {
+  if (periodStarts.length) {
+    localStorage.setItem(STORAGE_KEYS.lastPeriod, periodStarts[periodStarts.length - 1]);
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.lastPeriod);
+  }
+}
+
+function savePeriodStarts(periodStarts) {
+  const normalized = normalizePeriodStarts(periodStarts);
+  localStorage.setItem(STORAGE_KEYS.periodStarts, JSON.stringify(normalized));
+  syncLegacyLastPeriod(normalized);
+  return normalized;
+}
+
+function loadTrackingData() {
+  const fallbackCycleLength = parseInt(localStorage.getItem(STORAGE_KEYS.cycleLength), 10) || 28;
+  const legacyLastPeriod = localStorage.getItem(STORAGE_KEYS.lastPeriod);
+  const rawStarts = localStorage.getItem(STORAGE_KEYS.periodStarts);
+
+  let parsedStarts = [];
+  if (rawStarts) {
+    try {
+      const parsed = JSON.parse(rawStarts);
+      if (Array.isArray(parsed)) parsedStarts = parsed;
+    } catch (_) {
+      parsedStarts = [];
+    }
+  }
+
+  if (!parsedStarts.length && legacyLastPeriod) {
+    parsedStarts = [legacyLastPeriod];
+  }
+
+  const normalized = normalizePeriodStarts(parsedStarts);
+  if (JSON.stringify(normalized) !== JSON.stringify(parsedStarts)) {
+    savePeriodStarts(normalized);
+  } else {
+    syncLegacyLastPeriod(normalized);
+  }
+
+  return {
+    periodStarts: normalized,
+    fallbackCycleLength
+  };
 }
 
 function clearData() {
-  localStorage.removeItem("pb_lastPeriod");
-  localStorage.removeItem("pb_cycleLength");
+  localStorage.removeItem(STORAGE_KEYS.lastPeriod);
+  localStorage.removeItem(STORAGE_KEYS.cycleLength);
+  localStorage.removeItem(STORAGE_KEYS.periodStarts);
 }
 
 // ── Navigation ──
@@ -292,11 +483,20 @@ function showInput() {
   dashboardScreen.classList.add("hidden");
 }
 
-function showDashboard(lastPeriod, cycleLength) {
+function showDashboard() {
+  const data = loadTrackingData();
+  if (!data.periodStarts.length) {
+    showInput();
+    return;
+  }
+
   inputScreen.classList.add("hidden");
   dashboardScreen.classList.remove("hidden");
-  const info = getCycleInfo(lastPeriod, cycleLength);
-  renderDashboard(info);
+
+  const metrics = getAdaptiveCycleMetrics(data.periodStarts, data.fallbackCycleLength, TRACKING_WINDOW);
+  const lastPeriod = data.periodStarts[data.periodStarts.length - 1];
+  const info = getCycleInfo(lastPeriod, metrics.effectiveCycleLength);
+  renderDashboard(info, metrics);
 }
 
 // ── Stepper Logic ──
@@ -333,14 +533,53 @@ function setupStepper(decId, incId, displayId, hiddenId, initial) {
   };
 }
 
+function attemptAddPeriodStart(periodStarts, newDateIso, allowShortGapOverride = false) {
+  if (!isValidISODate(newDateIso)) {
+    return { ok: false, reason: "invalid" };
+  }
+
+  if (periodStarts.includes(newDateIso)) {
+    return { ok: false, reason: "duplicate" };
+  }
+
+  const sorted = [...periodStarts].sort();
+  const previous = findPreviousStart(sorted, newDateIso);
+  if (!allowShortGapOverride && hasShortGapWarning(previous, newDateIso)) {
+    return { ok: false, reason: "short-gap", previousDate: previous };
+  }
+
+  const updated = savePeriodStarts([...periodStarts, newDateIso]);
+  return { ok: true, periodStarts: updated };
+}
+
+function openSettingsModal(editStepper) {
+  const data = loadTrackingData();
+  const latest = data.periodStarts[data.periodStarts.length - 1];
+  $("#edit-last-period").value = latest ? toDisplay(latest) : "";
+  editStepper.set(data.fallbackCycleLength);
+  $("#add-period-start").value = "";
+  renderPeriodHistory(data.periodStarts);
+  settingsModal.classList.remove("hidden");
+}
+
 // ── Share ──
-function shareResult(lastPeriod, cycleLength) {
-  const info = getCycleInfo(lastPeriod, cycleLength);
+function shareResult() {
+  const data = loadTrackingData();
+  if (!data.periodStarts.length) return;
+
+  const metrics = getAdaptiveCycleMetrics(data.periodStarts, data.fallbackCycleLength, TRACKING_WINDOW);
+  const info = getCycleInfo(data.periodStarts[data.periodStarts.length - 1], metrics.effectiveCycleLength);
   const phase = PHASES[info.currentPhase];
+
+  const cycleEstimateLine = metrics.adaptiveUsed
+    ? `Cycle estimate: ${metrics.effectiveCycleLength} days (from recent tracking)`
+    : `Cycle estimate: ${metrics.effectiveCycleLength} days`;
+
   const text = [
     `Day ${info.cycleDay}: ${phase.name} ${phase.emojis}`,
     `Next phase: ${getPhaseLabel(info.nextPhase)} in ${pluralizeDays(info.daysUntilNextPhase)}`,
     `Next period: in ${pluralizeDays(info.daysUntilNextPeriod)} (${formatFriendlyDate(info.nextPeriodDate)})`,
+    cycleEstimateLine,
     `Coach Play: ${phase.coachTip}`,
     "",
     "- Period Bro"
@@ -350,10 +589,7 @@ function shareResult(lastPeriod, cycleLength) {
     navigator.share({ title: "Period Bro", text }).catch(() => {});
   } else {
     navigator.clipboard.writeText(text).then(() => {
-      const btn = $("#share-btn");
-      const original = btn.textContent;
-      btn.textContent = "Copied! ✅";
-      setTimeout(() => { btn.textContent = original; }, 2000);
+      flashButtonText($("#share-btn"), "Copied! ✅", 2000);
     });
   }
 }
@@ -362,13 +598,15 @@ function shareResult(lastPeriod, cycleLength) {
 (function init() {
   setupDateInput($("#last-period"));
   setupDateInput($("#edit-last-period"));
+  setupDateInput($("#add-period-start"));
 
-  const mainStepper = setupStepper("#cycle-dec", "#cycle-inc", "#cycle-length-display", "#cycle-length");
-  const editStepper = setupStepper("#edit-cycle-dec", "#edit-cycle-inc", "#edit-cycle-length-display", "#edit-cycle-length");
+  const initialCycleLength = parseInt(localStorage.getItem(STORAGE_KEYS.cycleLength), 10) || 28;
+  const mainStepper = setupStepper("#cycle-dec", "#cycle-inc", "#cycle-length-display", "#cycle-length", initialCycleLength);
+  const editStepper = setupStepper("#edit-cycle-dec", "#edit-cycle-inc", "#edit-cycle-length-display", "#edit-cycle-length", initialCycleLength);
 
-  const saved = loadData();
-  if (saved) {
-    showDashboard(saved.lastPeriod, saved.cycleLength);
+  const saved = loadTrackingData();
+  if (saved.periodStarts.length) {
+    showDashboard();
   }
 
   $("#setup-form").addEventListener("submit", (e) => {
@@ -380,19 +618,43 @@ function shareResult(lastPeriod, cycleLength) {
       input.setCustomValidity("");
       return;
     }
+
     const lastPeriod = toISO(input.value);
     const cycleLength = mainStepper.get();
-    saveData(lastPeriod, cycleLength);
-    showDashboard(lastPeriod, cycleLength);
+    saveFallbackCycleLength(cycleLength);
+    savePeriodStarts([lastPeriod]);
+    showDashboard();
+  });
+
+  $("#log-period-btn").addEventListener("click", () => {
+    const today = getTodayStart();
+    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const data = loadTrackingData();
+
+    let result = attemptAddPeriodStart(data.periodStarts, todayIso);
+    if (!result.ok && result.reason === "short-gap") {
+      const daysGap = daysBetween(result.previousDate, todayIso);
+      const allow = confirm(`This start is only ${daysGap} days after the previous one. Log anyway?`);
+      if (!allow) return;
+      result = attemptAddPeriodStart(data.periodStarts, todayIso, true);
+    }
+
+    if (!result.ok && result.reason === "duplicate") {
+      flashButtonText($("#log-period-btn"), "Already logged today", 1800);
+      return;
+    }
+
+    if (result.ok) {
+      showDashboard();
+      flashButtonText($("#log-period-btn"), "Logged ✅", 1500);
+      if (!settingsModal.classList.contains("hidden")) {
+        renderPeriodHistory(result.periodStarts);
+      }
+    }
   });
 
   $("#edit-btn").addEventListener("click", () => {
-    const data = loadData();
-    if (data) {
-      $("#edit-last-period").value = toDisplay(data.lastPeriod);
-      editStepper.set(data.cycleLength);
-    }
-    settingsModal.classList.remove("hidden");
+    openSettingsModal(editStepper);
   });
 
   $("#settings-form").addEventListener("submit", (e) => {
@@ -404,11 +666,78 @@ function shareResult(lastPeriod, cycleLength) {
       input.setCustomValidity("");
       return;
     }
-    const lastPeriod = toISO(input.value);
+
+    const editedLatest = toISO(input.value);
     const cycleLength = editStepper.get();
-    saveData(lastPeriod, cycleLength);
+    saveFallbackCycleLength(cycleLength);
+
+    const data = loadTrackingData();
+    const updatedStarts = [...data.periodStarts];
+    if (updatedStarts.length) {
+      updatedStarts[updatedStarts.length - 1] = editedLatest;
+    } else {
+      updatedStarts.push(editedLatest);
+    }
+    savePeriodStarts(updatedStarts);
+
     settingsModal.classList.add("hidden");
-    showDashboard(lastPeriod, cycleLength);
+    showDashboard();
+  });
+
+  $("#add-period-btn").addEventListener("click", () => {
+    const input = $("#add-period-start");
+    if (!isValidDisplayDate(input.value)) {
+      input.setCustomValidity("Enter a valid date (dd/mm/yyyy), not in the future");
+      input.reportValidity();
+      input.setCustomValidity("");
+      return;
+    }
+
+    const newDateIso = toISO(input.value);
+    const data = loadTrackingData();
+
+    let result = attemptAddPeriodStart(data.periodStarts, newDateIso);
+    if (!result.ok && result.reason === "short-gap") {
+      const daysGap = daysBetween(result.previousDate, newDateIso);
+      const allow = confirm(`This start is only ${daysGap} days after the previous one. Add anyway?`);
+      if (!allow) return;
+      result = attemptAddPeriodStart(data.periodStarts, newDateIso, true);
+    }
+
+    if (!result.ok && result.reason === "duplicate") {
+      flashButtonText($("#add-period-btn"), "Already saved", 1500);
+      return;
+    }
+
+    if (result.ok) {
+      input.value = "";
+      renderPeriodHistory(result.periodStarts);
+      showDashboard();
+      flashButtonText($("#add-period-btn"), "Added ✅", 1500);
+    }
+  });
+
+  $("#period-history-list").addEventListener("click", (e) => {
+    const button = e.target.closest(".history-delete");
+    if (!button) return;
+
+    const isoDate = button.getAttribute("data-date");
+    if (!isoDate) return;
+
+    if (!confirm(`Delete tracked start date ${toDisplay(isoDate)}?`)) return;
+
+    const data = loadTrackingData();
+    const filtered = data.periodStarts.filter((date) => date !== isoDate);
+    const savedStarts = savePeriodStarts(filtered);
+
+    renderPeriodHistory(savedStarts);
+    if (savedStarts.length) {
+      $("#edit-last-period").value = toDisplay(savedStarts[savedStarts.length - 1]);
+      showDashboard();
+    } else {
+      settingsModal.classList.add("hidden");
+      showInput();
+    }
   });
 
   $("#cancel-btn").addEventListener("click", () => {
@@ -430,8 +759,7 @@ function shareResult(lastPeriod, cycleLength) {
   });
 
   $("#share-btn").addEventListener("click", () => {
-    const data = loadData();
-    if (data) shareResult(data.lastPeriod, data.cycleLength);
+    shareResult();
   });
 
   if ("serviceWorker" in navigator) {
